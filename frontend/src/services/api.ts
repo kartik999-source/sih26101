@@ -436,56 +436,6 @@ export async function fetchSkillGaps() {
   );
 }
 
-// 7.5 DYNAMIC GEMINI QUIZ GENERATION
-export interface GeneratedQuizQuestion {
-  id: string;
-  question: string;
-  options: string[];
-  correctAnswer: number;
-  explanation: string;
-}
-
-export interface GeneratedQuizTopic {
-  id: string;
-  title: string;
-  category: 'technical' | 'dsa' | 'cloud' | 'system-design' | 'ai' | string;
-  description: string;
-  questionCount: number;
-  durationMinutes: number;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  xpReward: number;
-  questions: GeneratedQuizQuestion[];
-  source?: 'gemini' | 'dynamic-fallback';
-}
-
-export async function generateAiQuiz(payload: {
-  topic?: string;
-  difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
-  count?: number;
-  category?: string;
-  context?: string;
-  notes?: string;
-  images?: { mimeType: string; data: string; name?: string }[];
-}): Promise<{ success: boolean; quiz: GeneratedQuizTopic; source?: string; model?: string }> {
-  const response = await fetch(`${API_BASE}/ai/quiz/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}));
-    throw new Error(errorBody.error || `Failed to generate quiz: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  if (!data.success || !data.quiz || !Array.isArray(data.quiz.questions) || data.quiz.questions.length === 0) {
-    throw new Error(data.error || 'Gemini could not generate questions from this material. Please try again.');
-  }
-
-  return data;
-}
-
 // 8. HELPDESK & FAQS
 export async function sendHelpdeskChat(
   message: string,

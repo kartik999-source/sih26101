@@ -56,7 +56,6 @@ export const Register: React.FC<RegisterProps> = ({
 
   // --- Student Fields ---
   const [studentName, setStudentName] = useState('Adarsh Pratap Singh');
-  const [studentRollNo, setStudentRollNo] = useState('22001015001');
   const [academicYear, setAcademicYear] = useState('2025-29');
   
   // Department dropdown state
@@ -182,7 +181,6 @@ export const Register: React.FC<RegisterProps> = ({
       if (activeTab === 'student') {
         const studentProfile = {
           name: studentName,
-          rollNo: studentRollNo,
           email: studentEmail,
           department: selectedDept.name,
           departmentCode: selectedDept.code,
@@ -202,7 +200,6 @@ export const Register: React.FC<RegisterProps> = ({
         localStorage.setItem('userEmail', studentEmail);
         localStorage.setItem('userCourse', selectedDept.name);
         localStorage.setItem('userCollege', selectedCollege.name);
-        localStorage.setItem('userRollNo', studentRollNo);
         localStorage.setItem('userYear', academicYear);
         localStorage.setItem('roleLocked', 'true');
 
@@ -212,8 +209,7 @@ export const Register: React.FC<RegisterProps> = ({
           email: studentEmail,
           department: selectedDept.name,
           college: selectedCollege,
-          batch: academicYear,
-          rollNo: studentRollNo
+          batch: academicYear
         });
       } else if (activeTab === 'mentor') {
         const companyStr = customCompany.trim() || mentorCompanyPreset;
@@ -419,43 +415,24 @@ export const Register: React.FC<RegisterProps> = ({
                   </div>
                 </div>
 
-                {/* Roll No and Academic Year */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-white/60 mb-1">
-                      Roll / ID Number <span className="text-[#7C5CFC]">*</span>
-                    </label>
-                    <div className="relative">
-                      <Hash className="w-3.5 h-3.5 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        required
-                        value={studentRollNo}
-                        onChange={(e) => setStudentRollNo(e.target.value)}
-                        placeholder="22001015001"
-                        className="w-full bg-[#1A1F3D] border border-white/[0.08] focus:border-[#7C5CFC] text-white text-xs rounded-xl pl-9 pr-3 py-2.5 outline-none transition-all font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-white/60 mb-1">
-                      Academic Year <span className="text-[#7C5CFC]">*</span>
-                    </label>
-                    <div className="relative">
-                      <Calendar className="w-3.5 h-3.5 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <select
-                        value={academicYear}
-                        onChange={(e) => setAcademicYear(e.target.value)}
-                        className="w-full bg-[#1A1F3D] border border-white/[0.08] focus:border-[#7C5CFC] text-white text-xs rounded-xl pl-9 pr-8 py-2.5 outline-none appearance-none cursor-pointer"
-                      >
-                        <option value="2023-27">2023-27</option>
-                        <option value="2024-28">2024-28</option>
-                        <option value="2025-29">2025-29</option>
-                        <option value="2026-30">2026-30</option>
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-white/40 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
+                {/* Academic Year */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-white/60 mb-1">
+                    Academic Year <span className="text-[#7C5CFC]">*</span>
+                  </label>
+                  <div className="relative">
+                    <Calendar className="w-3.5 h-3.5 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <select
+                      value={academicYear}
+                      onChange={(e) => setAcademicYear(e.target.value)}
+                      className="w-full bg-[#1A1F3D] border border-white/[0.08] focus:border-[#7C5CFC] text-white text-xs rounded-xl pl-9 pr-8 py-2.5 outline-none appearance-none cursor-pointer"
+                    >
+                      <option value="2023-27">2023-27</option>
+                      <option value="2024-28">2024-28</option>
+                      <option value="2025-29">2025-29</option>
+                      <option value="2026-30">2026-30</option>
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-white/40 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
                 </div>
 

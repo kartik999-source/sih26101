@@ -39,12 +39,6 @@ import {
 } from 'lucide-react';
 import { StudentProfile, UserRole } from '../types';
 import { detectAccurateLocation, syncLocationAcrossApp, normalizeLocationString } from '../utils/locationService';
-import { LearningHoursTracker } from './LearningHoursTracker';
-import { ActivityHeatmap } from './ActivityHeatmap';
-import { SAMPLE_ACTIVITY_DATA } from '../data/sampleActivityData';
-
-export { LearningHoursTracker } from './LearningHoursTracker';
-export { ActivityHeatmap } from './ActivityHeatmap';
 
 export interface UserProfileData {
   name: string;
@@ -115,7 +109,6 @@ interface ProfessionalProfileProps {
   currentRole?: UserRole;
   onSaveProfile?: (updated: Partial<StudentProfile>) => void;
   onNavigateTab?: (tab: string) => void;
-  inline?: boolean;
 }
 
 export const ProfessionalProfile: React.FC<ProfessionalProfileProps> = ({
@@ -124,8 +117,7 @@ export const ProfessionalProfile: React.FC<ProfessionalProfileProps> = ({
   student,
   currentRole = 'student',
   onSaveProfile,
-  onNavigateTab,
-  inline = false
+  onNavigateTab
 }) => {
   const [p, setP] = useState<UserProfileData>(getStoredUserProfile);
   const [isLocationRefreshing, setIsLocationRefreshing] = useState(false);
@@ -146,7 +138,7 @@ export const ProfessionalProfile: React.FC<ProfessionalProfileProps> = ({
 
   // Sub-feature Modals State
   const [activeModal, setActiveModal] = useState<
-    'dna' | 'roadmap' | 'certifications' | 'applications' | 'settings' | 'hours' | null
+    'dna' | 'roadmap' | 'certifications' | 'applications' | 'settings' | null
   >(null);
 
   // Sync on open
@@ -288,10 +280,31 @@ export const ProfessionalProfile: React.FC<ProfessionalProfileProps> = ({
 
   const roleLabel = isHOD ? 'HOD / Faculty' : isMentor ? 'Industry Mentor' : 'Student Candidate';
 
-  const renderProfileContent = () => (
-    <>
-      {/* Scrollable Main Area */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 sidebar-scrollbar">
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden select-none font-sans">
+          {/* Backdrop with fade animation */}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm"
+            onClick={onClose}
+          />
+
+          <div className="fixed inset-y-0 left-0 max-w-full flex pr-10 pointer-events-none">
+            <motion.div 
+              initial={{ x: '-100%', opacity: 0.9 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: '-100%', opacity: 0.9 }}
+              transition={{ type: 'spring', damping: 26, stiffness: 240, mass: 0.8 }}
+              className="w-screen max-w-md bg-[#0B0F2A] border-r border-white/10 shadow-2xl flex flex-col justify-between text-slate-100 pointer-events-auto"
+            >
+              
+              {/* Scrollable Main Area */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6 sidebar-scrollbar">
                 
                 {/* Header: PROFESSIONAL PROFILE 11px tracking 1.6px #7C5CFC + badge 🔒 {p.role} */}
                 <div className="flex items-center justify-between">
@@ -559,25 +572,6 @@ export const ProfessionalProfile: React.FC<ProfessionalProfileProps> = ({
                 </span>
               </div>
 
-              {/* Learning Hours Tracker Card */}
-              <LearningHoursTracker
-                totalHours="24.5 Hrs"
-                subtitle="Total time spent learning & active sessions"
-                onClick={() => setActiveModal('hours')}
-              />
-
-              {/* Activity Heatmap Card */}
-              <div className="pt-0.5">
-                <ActivityHeatmap
-                  data={SAMPLE_ACTIVITY_DATA}
-                  title="Activity Heatmap"
-                  subtitle="Past 52 weeks of code commits, quizzes & tasks"
-                  colorScheme="purple"
-                  showStats={true}
-                  className="bg-[#1A1F3D]/60 border-white/5 hover:border-[#7C5CFC]/30 transition-all"
-                />
-              </div>
-
               <div 
                 onClick={() => setActiveModal('roadmap')}
                 className="p-3 rounded-xl bg-[#1A1F3D]/60 hover:bg-[#1A1F3D] border border-white/5 hover:border-[#7C5CFC]/40 transition-all flex items-center justify-between cursor-pointer group"
@@ -633,11 +627,9 @@ export const ProfessionalProfile: React.FC<ProfessionalProfileProps> = ({
             <span>Ladder AI</span>
             <span className="text-[10px] text-[#7C5CFC]">v2.4.0 Live</span>
           </div>
-    </>
-  );
+        </motion.div>
+      </div>
 
-  const renderModals = () => (
-    <>
       {/* Edit Profile Modal */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-60 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
@@ -830,80 +822,6 @@ export const ProfessionalProfile: React.FC<ProfessionalProfileProps> = ({
         </div>
       )}
 
-      {activeModal === 'hours' && (
-        <div className="fixed inset-0 z-60 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#0B0F2A] border border-white/10 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl text-slate-200 animate-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                <Clock className="w-4 h-4 text-cyan-400" />
-                <span>Learning Hours Tracker</span>
-              </h4>
-              <button onClick={() => setActiveModal(null)} className="p-1 rounded-lg bg-white/5 text-slate-400 hover:text-white cursor-pointer">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="space-y-3 text-xs">
-              <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 flex items-center justify-between">
-                <div>
-                  <div className="text-[11px] text-cyan-400/80 uppercase font-semibold">Total Verified Time</div>
-                  <div className="text-lg font-bold text-white">24.5 Hours</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[11px] text-cyan-400/80 uppercase font-semibold">Active Sessions</div>
-                  <div className="text-sm font-bold text-white">18 Completed</div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-2 h-2 rounded-full bg-cyan-400" />
-                    <div>
-                      <div className="font-semibold text-white">Interactive Tracks & Courses</div>
-                      <div className="text-[10px] text-white/50">Full Stack & Cloud Architecture</div>
-                    </div>
-                  </div>
-                  <span className="font-semibold text-cyan-300">12.0 Hrs</span>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-2 h-2 rounded-full bg-purple-400" />
-                    <div>
-                      <div className="font-semibold text-white">Practice Quizzes & MCQs</div>
-                      <div className="text-[10px] text-white/50">AI Multimodal Assessments</div>
-                    </div>
-                  </div>
-                  <span className="font-semibold text-purple-300">5.5 Hrs</span>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-2 h-2 rounded-full bg-amber-400" />
-                    <div>
-                      <div className="font-semibold text-white">Mentor Capsules & Reviews</div>
-                      <div className="text-[10px] text-white/50">1-on-1 industry architect sessions</div>
-                    </div>
-                  </div>
-                  <span className="font-semibold text-amber-300">3.5 Hrs</span>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                    <div>
-                      <div className="font-semibold text-white">Coding Labs & Assessments</div>
-                      <div className="text-[10px] text-white/50">Algorithmic tests & benchmarks</div>
-                    </div>
-                  </div>
-                  <span className="font-semibold text-emerald-300">3.5 Hrs</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {activeModal === 'certifications' && (
         <div className="fixed inset-0 z-60 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-[#0B0F2A] border border-white/10 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl text-slate-200 animate-in zoom-in-95">
@@ -967,47 +885,8 @@ export const ProfessionalProfile: React.FC<ProfessionalProfileProps> = ({
           </div>
         </div>
       )}
-    </>
-  );
-
-  if (inline) {
-    return (
-      <div className="w-full max-w-xl mx-auto rounded-3xl bg-[#0B0F2A] border border-white/10 shadow-2xl flex flex-col justify-between text-slate-100 overflow-hidden font-sans select-none">
-        {renderProfileContent()}
-        {renderModals()}
-      </div>
-    );
-  }
-
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 overflow-hidden select-none font-sans">
-          {/* Backdrop with fade animation */}
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.22, ease: 'easeOut' }}
-            className="fixed inset-0 bg-black/75 backdrop-blur-sm"
-            onClick={onClose}
-          />
-
-          <div className="fixed inset-y-0 left-0 max-w-full flex pr-10 pointer-events-none">
-            <motion.div 
-              initial={{ x: '-100%', opacity: 0.9 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: '-100%', opacity: 0.9 }}
-              transition={{ type: 'spring', damping: 26, stiffness: 240, mass: 0.8 }}
-              className="w-screen max-w-md bg-[#0B0F2A] border-r border-white/10 shadow-2xl flex flex-col justify-between text-slate-100 pointer-events-auto"
-            >
-              {renderProfileContent()}
-            </motion.div>
-          </div>
-
-          {renderModals()}
-        </div>
-      )}
+    </div>
+    )}
     </AnimatePresence>
   );
 };

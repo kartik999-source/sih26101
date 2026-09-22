@@ -2,55 +2,12 @@ const express = require("express");
 const db = require("./db");
 const auth = require("./auth");
 const jwt = require("jsonwebtoken");
-const { GoogleGenAI, Type } = require("@google/genai");
 
 const JWT_SECRET = process.env.JWT_SECRET || "skillbridge-secret-key-2026";
 
-let genAiClient = null;
-function getGenAiClient() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!genAiClient && apiKey && typeof apiKey === "string" && apiKey.trim().length > 5) {
-    try {
-      genAiClient = new GoogleGenAI({ 
-        apiKey: apiKey.trim(),
-        httpOptions: {
-          headers: {
-            'User-Agent': 'aistudio-build',
-          }
-        }
-      });
-    } catch (e) {
-      console.warn("Failed to initialize GoogleGenAI client:", e.message);
-    }
-  }
-  return genAiClient;
-}
-
-function cleanQuestionText(str) {
-  if (typeof str !== 'string') return '';
-  let cleaned = str.trim();
-  // Strip leading phrases like "According to the syllabus,", "In the syllabus provided,", etc.
-  cleaned = cleaned.replace(/^(According to|As per|Based on|In|From)\s+(the\s+)?(provided\s+|attached\s+|given\s+)?(syllabus|notes|learning material|material|study material|photo|image|diagram|slide)[,:\s-]*/i, '');
-  // Strip parenthetical references
-  cleaned = cleaned.replace(/\s*\((according to|as per|in|from)\s+(the\s+)?(provided\s+|attached\s+|given\s+)?(syllabus|notes|material|photo|image|diagram)\)\s*/gi, ' ');
-  // Strip trailing references
-  cleaned = cleaned.replace(/,\s*(according to|as per)\s+(the\s+)?(provided\s+|attached\s+|given\s+)?(syllabus|notes|material|photo|image|diagram)[.?!]?/gi, '?');
-  // Strip any remaining standalone words like "syllabus" if used in meta context
-  cleaned = cleaned.replace(/\b(the|this|given)\s+syllabus\b/gi, 'this topic');
-  cleaned = cleaned.replace(/\bsyllabus\b/gi, 'subject material');
-  // Clean up whitespace
-  cleaned = cleaned.replace(/\s+/g, ' ').trim();
-  // Capitalize first character
-  if (cleaned.length > 0) {
-    cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
-  }
-  return cleaned;
-}
-
 function registerApiRoutes(app) {
   /* ================= MIDDLEWARE ================= */
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  app.use(express.json());
 
   /* ================= HEALTH & DB STATUS ================= */
   app.get("/api/health", async (req, res) => {
@@ -610,174 +567,20 @@ function registerApiRoutes(app) {
     res.json({ success: true });
   });
 
-  /* ================= DYNAMIC QUIZ GENERATION (GEMINI POWERED) ================= */
   app.post("/api/ai/quiz/generate", async (req, res) => {
-    const { 
-      topic = "", 
-      difficulty = "Intermediate", 
-      count = 5, 
-      category = "technical",
-      context = "",
-      notes = "",
-      images = []
-    } = req.body;
-
-    const parsedCount = Math.min(Math.max(Number(count) || 5, 3), 10);
-    const quizId = `ai-quiz-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-    const durationMinutes = Math.max(parsedCount, 4);
-    const xpReward = difficulty === "Advanced" ? parsedCount * 60 : (difficulty === "Intermediate" ? parsedCount * 50 : parsedCount * 40);
-
-    const hasNotes = typeof notes === 'string' && notes.trim().length > 0;
-    const hasImages = Array.isArray(images) && images.length > 0;
-
-    const effectiveTopic = topic && topic.trim().length > 0 
-      ? topic.trim() 
-      : (hasNotes ? 'Custom Learning Notes' : (hasImages ? 'Uploaded Study Material & Photos' : 'Full-Stack Software Engineering'));
-
+    const { content } = req.body;
     const ai = getGenAiClient();
-    if (ai) {
-      const candidateModels = ["gemini-3.8-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
-      
-      let promptText = `Generate an industry-standard technical assessment with exactly ${parsedCount} Multiple Choice Questions (MCQs).
-Difficulty level: ${difficulty}.
-Category: ${category}.`;
-
-      if (topic && topic.trim()) {
-        promptText += `\nSubject/Topic: "${topic.trim()}"`;
-      }
-      if (context && context.trim()) {
-        promptText += `\nContext/Focus: ${context.trim()}`;
-      }
-
-      if (hasNotes) {
-        promptText += `\n\n=== LEARNING MATERIAL / STUDY NOTES ===\n${notes.trim()}\n=== END OF NOTES ===\n\nCRITICAL INSTRUCTION: You must strictly synthesize questions that test concepts, code snippets, definitions, formulas, or architectural principles found in the provided notes above.`;
-      }
-
-      if (hasImages) {
-        promptText += `\n\nCRITICAL INSTRUCTION: Analyze the attached image(s) containing study notes, textbook pages, whiteboard sketches, lecture slides, or architecture diagrams. Synthesize questions directly testing the technical contents, handwritten formulas, or visual diagrams in the photo(s).`;
-      }
-
-      promptText += `\n\nRules:
-1. Each question must test practical engineering depth, analytical reasoning, or concepts directly from the provided learning material.
-2. If no topic title was explicitly given by the user, infer a concise, high-level title for the quiz from the material.
-3. Exactly 4 distinct plausible options per question.
-4. The correct answer index (0, 1, 2, or 3) should vary naturally across questions (not all index 0).
-5. Provide a clear 1-2 sentence explanation of why the correct answer is right and why other options are incorrect.
-6. FORBIDDEN WORDS & META-REFERENCES: NEVER use meta-phrases such as "According to the syllabus", "In the syllabus", "As per the syllabus", "In the photo", or "Based on the notes" in the questions or options. State the technical question directly (e.g. "What is the primary advantage of...?", "Which algorithm achieves...?").`;
-
-      const parts = [{ text: promptText }];
-
-      // Attach base64 image data parts
-      if (hasImages) {
-        for (const img of images) {
-          if (img && img.data) {
-            let base64Data = img.data;
-            let mimeType = img.mimeType || 'image/jpeg';
-            if (typeof base64Data === 'string' && base64Data.includes(';base64,')) {
-              const split = base64Data.split(';base64,');
-              if (!img.mimeType && split[0].includes('data:')) {
-                mimeType = split[0].replace('data:', '');
-              }
-              base64Data = split[1];
-            }
-            parts.push({
-              inlineData: {
-                mimeType: mimeType,
-                data: base64Data
-              }
-            });
-          }
-        }
-      }
-
-      for (const modelName of candidateModels) {
-        try {
-          const response = await ai.models.generateContent({
-            model: modelName,
-            contents: parts,
-            config: {
-              systemInstruction: "You are an expert Technical Interviewer, Professor, and Assessment Architect. You create clean, direct, self-contained Multiple Choice Questions from student notes and photos without including meta-references to 'syllabus', 'photos', or 'provided material'.",
-              responseMimeType: "application/json",
-              responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                  title: { type: Type.STRING, description: "Clear, descriptive title for the quiz" },
-                  description: { type: Type.STRING, description: "Description of skills/material tested" },
-                  category: { type: Type.STRING, description: "Category of the quiz" },
-                  questions: {
-                    type: Type.ARRAY,
-                    items: {
-                      type: Type.OBJECT,
-                      properties: {
-                        id: { type: Type.STRING, description: "Question ID like q1, q2" },
-                        question: { type: Type.STRING, description: "Direct, self-contained question text (never starting with 'According to the syllabus')" },
-                        options: {
-                          type: Type.ARRAY,
-                          items: { type: Type.STRING },
-                          description: "Exactly 4 answer choices"
-                        },
-                        correctAnswer: { type: Type.INTEGER, description: "0-based index of correct option (0-3)" },
-                        explanation: { type: Type.STRING, description: "Explanation of the correct answer" }
-                      },
-                      required: ["id", "question", "options", "correctAnswer", "explanation"]
-                    }
-                  }
-                },
-                required: ["title", "description", "questions"]
-              }
-            }
-          });
-
-          if (response && response.text) {
-            const parsed = JSON.parse(response.text.trim());
-            const validQuestions = (parsed.questions || []).map((q, idx) => {
-              const rawQuestion = q.question || `Question ${idx + 1}`;
-              const cleanedQuestion = cleanQuestionText(rawQuestion);
-              const cleanedOptions = (Array.isArray(q.options) && q.options.length === 4 ? q.options : (q.options || ['Option A', 'Option B', 'Option C', 'Option D']).slice(0, 4)).map(opt => cleanQuestionText(opt));
-              const cleanedExplanation = cleanQuestionText(q.explanation || "Verified by technical benchmark.");
-
-              return {
-                id: q.id || `q${idx + 1}`,
-                question: cleanedQuestion,
-                options: cleanedOptions,
-                correctAnswer: typeof q.correctAnswer === 'number' && q.correctAnswer >= 0 && q.correctAnswer < 4 ? q.correctAnswer : (idx % 4),
-                explanation: cleanedExplanation
-              };
-            });
-
-            if (validQuestions.length > 0) {
-              return res.json({
-                success: true,
-                source: "gemini",
-                model: modelName,
-                quiz: {
-                  id: quizId,
-                  title: cleanQuestionText(parsed.title || `${effectiveTopic} Assessment`),
-                  category: parsed.category || category,
-                  description: cleanQuestionText(parsed.description || `Assessment generated from your learning material (${difficulty} level).`),
-                  difficulty,
-                  durationMinutes,
-                  xpReward,
-                  questionCount: validQuestions.length,
-                  questions: validQuestions
-                }
-              });
-            }
-          }
-        } catch (modelErr) {
-          // If high demand or transient 503, continue to next candidate model
-          const isHighDemand = modelErr?.status === 503 || String(modelErr?.message || '').includes('high demand');
-          if (isHighDemand) {
-            continue;
-          }
-        }
-      }
+    if (!ai) return res.status(500).json({ error: "AI Client not initialized" });
+    
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-3.7-flash",
+            contents: [{ role: "user", parts: [{ text: `Generate 3 MCQs with answers from this content: ${content}` }] }]
+        });
+        res.json({ quiz: response.text });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to generate quiz" });
     }
-
-    return res.status(503).json({
-      success: false,
-      error: "Gemini AI generation is temporarily experiencing high traffic. Please retry in a few seconds."
-    });
   });
 
   /* ================= CAREER ANALYSIS ================= */
@@ -830,6 +633,28 @@ Category: ${category}.`;
   });
 
   /* ================= CHAT API (GEMINI POWERED) ================= */
+  const { GoogleGenAI } = require("@google/genai");
+
+  let genAiClient = null;
+  function getGenAiClient() {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!genAiClient && apiKey && typeof apiKey === "string" && apiKey.trim().length > 5) {
+      try {
+        genAiClient = new GoogleGenAI({ 
+          apiKey: apiKey.trim(),
+          httpOptions: {
+              headers: {
+                'User-Agent': 'aistudio-build',
+              }
+          }
+        });
+      } catch (e) {
+        console.warn("Failed to initialize GoogleGenAI client:", e.message);
+      }
+    }
+    return genAiClient;
+  }
+
   app.post("/api/chat", async (req, res) => {
     const { messages } = req.body;
     const ai = getGenAiClient();
@@ -837,14 +662,15 @@ Category: ${category}.`;
 
     const history = messages.slice(0, -1).map(m => ({
       role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.text || m.content || '' }]
+      parts: [{ text: m.text }]
     }));
-    const userMessage = messages[messages.length - 1].text || messages[messages.length - 1].content || '';
+    const userMessage = messages[messages.length - 1].text;
 
     const chat = ai.chats.create({
-      model: "gemini-3.8-flash",
+      model: "gemini-3.7-flash",
       config: {
-        systemInstruction: "You are an AI Faculty Advisor. Answer concisely, directly, and provide actionable advice for HODs, Faculty, and Students.",
+          systemInstruction: "You are an AI Faculty Advisor. Answer concisely, directly, and provide actionable advice for HODs and Faculty.",
+          thinkingConfig: { thinkingLevel: 'minimal' }
       },
       history
     });
@@ -896,7 +722,7 @@ Category: ${category}.`;
         contents.push({ role: "user", parts: [{ text: userQuery }] });
 
         let replyText = null;
-        const candidateModels = ["gemini-3.8-flash", "gemini-3.1-flash-lite"];
+        const candidateModels = ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite-preview-02-05", "gemini-1.5-flash-8b", "gemini-2.0-flash"];
         for (const modelName of candidateModels) {
           try {
             if (req.query.stream === 'true') {

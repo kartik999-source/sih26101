@@ -185,22 +185,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </button>
 
                   <button
+                    id="nav-assessment"
+                    onClick={() => handleTabClick('assessment')}
+                    title="Skill Assessment"
+                    className={`w-full flex items-center ${collapsed ? 'justify-center w-10 h-10 mx-auto px-0 py-0 gap-0' : 'gap-3 px-2.5 py-2'} rounded-xl text-[13px] font-semibold transition-all ${
+                      activeTab === 'assessment'
+                        ? 'bg-[#7C5CFC]/20 text-[#C4B5FD] border border-[#7C5CFC]/30 shadow-sm font-bold'
+                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <Award className="w-4 h-4 text-cyan-300 shrink-0" />
+                    {!collapsed && <span className="truncate">Skill Assessment</span>}
+                  </button>
+
+                  <button
                     id="nav-quiz-mcqs"
                     onClick={() => handleTabClick('quiz-mcqs')}
-                    title="Quiz & MCQs (includes Skill Assessment)"
+                    title="Quiz & MCQs"
                     className={`w-full flex items-center ${collapsed ? 'justify-center w-10 h-10 mx-auto px-0 py-0 gap-0' : 'gap-3 px-2.5 py-2'} rounded-xl text-[13px] font-semibold transition-all ${
-                      activeTab === 'quiz-mcqs' || activeTab === 'assessment'
+                      activeTab === 'quiz-mcqs'
                         ? 'bg-[#7C5CFC]/20 text-[#C4B5FD] border border-[#7C5CFC]/30 shadow-sm font-bold'
                         : 'text-slate-300 hover:bg-white/5 hover:text-white'
                     }`}
                   >
                     <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                    {!collapsed && (
-                      <div className="flex items-center justify-between flex-1 min-w-0">
-                        <span className="truncate">Quiz & MCQs</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium">Assessments</span>
-                      </div>
-                    )}
+                    {!collapsed && <span className="truncate">Quiz & MCQs</span>}
                   </button>
 
                   <button
@@ -241,20 +250,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                 )}
                 <div className="space-y-0.5">
-                  <button
-                    id="nav-profile"
-                    onClick={() => handleTabClick('profile')}
-                    title="Student Profile & Learning Hours"
-                    className={`w-full flex items-center ${collapsed ? 'justify-center w-10 h-10 mx-auto px-0 py-0 gap-0' : 'gap-3 px-2.5 py-2'} rounded-xl text-[13px] font-semibold transition-all ${
-                      activeTab === 'profile'
-                        ? 'bg-[#7C5CFC]/20 text-[#C4B5FD] border border-[#7C5CFC]/30 shadow-sm font-bold'
-                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                    }`}
-                  >
-                    <UserIcon className="w-4 h-4 text-[#A78BFA] shrink-0" />
-                    {!collapsed && <span className="truncate">Student Profile</span>}
-                  </button>
-
                   <button
                     id="nav-resume"
                     onClick={() => handleTabClick('resume')}

@@ -10,6 +10,7 @@ import { BridgeBuddy } from './components/BridgeBuddy';
 
 import { StudentDashboard } from './pages/StudentDashboard';
 import { SkillIntelligenceView } from './pages/SkillIntelligenceView';
+import { SkillAssessmentView } from './pages/SkillAssessmentView';
 import { SkillGapAnalysisView } from './pages/SkillGapAnalysisView';
 import { QuizMcqsView } from './pages/QuizMcqsView';
 import { LearningHubView } from './pages/LearningHubView';
@@ -42,7 +43,7 @@ import {
 } from './pages/recruiter/RecruiterPages';
 
 import { UserRole, StudentProfile, Mentor, Gig, PassportRecord, JobOpportunity } from './types';
-import { ProfessionalProfile, getStoredUserProfile } from './components/ProfessionalProfile';
+import { getStoredUserProfile } from './components/ProfessionalProfile';
 import { CollegeItem, COLLEGES_DATA } from './data/colleges';
 import { 
   fetchStudentProfile,
@@ -470,15 +471,20 @@ export const App: React.FC = () => {
                   />
                 )}
 
-                {(activeTab === 'quiz-mcqs' || activeTab === 'assessment') && (
-                  <QuizMcqsView
+                {activeTab === 'assessment' && (
+                  <SkillAssessmentView 
                     student={student}
-                    onShowToast={showToast}
                     onNavigateTab={(t) => setActiveTab(t)}
-                    initialSubTab={activeTab === 'assessment' ? 'assessment' : 'quiz'}
                     onScoreUpdated={() => {
                       showToast('Skill DNA & Readiness updated from assessment results!', 'success');
                     }}
+                  />
+                )}
+
+                {activeTab === 'quiz-mcqs' && (
+                  <QuizMcqsView
+                    student={student}
+                    onShowToast={showToast}
                   />
                 )}
 
@@ -513,20 +519,6 @@ export const App: React.FC = () => {
                     onNavigateTab={(tab) => setActiveTab(tab)}
                     onShowToast={showToast}
                   />
-                )}
-
-                {activeTab === 'profile' && (
-                  <div className="max-w-2xl mx-auto py-2">
-                    <ProfessionalProfile
-                      isOpen={true}
-                      inline={true}
-                      onClose={() => setActiveTab('dashboard')}
-                      student={student}
-                      currentRole={currentRole}
-                      onSaveProfile={handleSaveProfile}
-                      onNavigateTab={(t) => setActiveTab(t)}
-                    />
-                  </div>
                 )}
 
                 {activeTab === 'advisor' && (

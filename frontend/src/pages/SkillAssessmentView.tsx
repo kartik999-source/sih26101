@@ -29,14 +29,12 @@ interface SkillAssessmentViewProps {
   student: StudentProfile | null;
   onNavigateTab: (tab: string) => void;
   onSkillUpdated?: () => void;
-  onScoreUpdated?: () => void;
 }
 
 export const SkillAssessmentView: React.FC<SkillAssessmentViewProps> = ({
   student,
   onNavigateTab,
-  onSkillUpdated,
-  onScoreUpdated
+  onSkillUpdated
 }) => {
   const categories = getAssessmentCategories();
   const [selectedType, setSelectedType] = useState<'all' | 'technical' | 'soft' | 'aptitude'>('all');
@@ -155,9 +153,6 @@ export const SkillAssessmentView: React.FC<SkillAssessmentViewProps> = ({
     if (onSkillUpdated) {
       onSkillUpdated();
     }
-    if (onScoreUpdated) {
-      onScoreUpdated();
-    }
   };
 
   const formatTime = (secs: number) => {
@@ -239,7 +234,7 @@ export const SkillAssessmentView: React.FC<SkillAssessmentViewProps> = ({
             </button>
             <button
               id="view-skill-gap-btn"
-              onClick={() => onNavigateTab('skill-gap')}
+              onClick={() => onNavigateTab('gap-analysis')}
               className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#7C5CFC] to-[#00D9FF] text-white font-semibold text-sm shadow-lg shadow-[#7C5CFC]/20 hover:opacity-90 transition-all flex items-center gap-2"
             >
               <BarChart2 className="w-4 h-4" />
